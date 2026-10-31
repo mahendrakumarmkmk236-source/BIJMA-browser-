@@ -1,31 +1,75 @@
-
 package com.mahendra.bijmaaibrowser;
 
 import android.os.Bundle;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.view.KeyEvent;
+import android.content.Context;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.webkit.WebSettings;
 import android.widget.*;
-import android.webkit.*;
+import android.speech.tts.TextToSpeech;
+import java.util.Locale;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
     LinearLayout root;
     WebView webView;
+    TextToSpeech tts;
     EditText addressBox;
 
-    int bg = Color.rgb(15, 18, 28);
-    int panel = Color.rgb(29, 35, 51);
-    int blue = Color.rgb(65, 145, 255);
+    int bg = Color.rgb(7, 10, 25);
+    int card = Color.rgb(20, 25, 49);
     int white = Color.WHITE;
+    int blue = Color.rgb(0, 190, 255);
+    int purple = Color.rgb(175, 45, 255);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        getWindow().setStatusBarColor(bg);
+        getWindow().setNavigationBarColor(bg);
+
+        tts = new TextToSpeech(this,
+            new TextToSpeech.OnInitListener() {
+                @Override
+                public void onInit(int status) {
+                    if (status == TextToSpeech.SUCCESS) {
+                        tts.setLanguage(new Locale("hi", "IN"));
+                    }
+                }
+            });
+
         showHome();
+    }
+
+    int dp(float value) {
+        return (int)(value * getResources()
+            .getDisplayMetrics().density);
+    }
+
+    GradientDrawable shape(int color, int stroke) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        d.setCornerRadius(dp(20));
+        d.setStroke(dp(2), stroke);
+        return d;
+    }
+
+    GradientDrawable gradient(int c1, int c2) {
+        GradientDrawable d = new GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            new int[]{c1, c2});
+        d.setCornerRadius(dp(22));
+        d.setStroke(dp(1), purple);
+        return d;
     }
 
     TextView text(String value, int size) {
@@ -34,179 +78,296 @@ public class MainActivity extends AppCompatActivity {
         t.setTextColor(white);
         t.setTextSize(size);
         t.setGravity(Gravity.CENTER);
-        t.setPadding(12, 14, 12, 14);
+        t.setPadding(dp(8), dp(8), dp(8), dp(8));
         return t;
     }
 
-    Button button(String name, View.OnClickListener action) {
-        Button b = new Button(this);
-        b.setText(name);
-        b.setTextColor(white);
-        b.setTextSize(17);
-        b.setAllCaps(false);
-        b.setBackgroundTintList(
-            android.content.res.ColorStateList.valueOf(panel)
-        );
-        b.setOnClickListener(action);
-        return b;
+    LinearLayout column() {
+        LinearLayout l = new LinearLayout(this);
+        l.setOrientation(LinearLayout.VERTICAL);
+        return l;
     }
 
-    void setup(String title) {
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
+    LinearLayout.LayoutParams params(int w, int h) {
+        return new LinearLayout.LayoutParams(
+            w < 0 ? w : dp(w),
+            h < 0 ? h : dp(h));
+    }
+
+    TextView heading(String value) {
+        TextView t = text(value, 23);
+        t.setTypeface(null, Typeface.BOLD);
+        t.setGravity(Gravity.CENTER);
+        t.setPadding(dp(10), dp(20), dp(10), dp(15));
+        return t;
+    }
+
+    void speak(String message) {
+        if (tts != null) {
+            tts.speak(message,
+                TextToSpeech.QUEUE_FLUSH, null, "bijma");
+        }
+    }
+
+    void showHome() {
+        root = column();
         root.setBackgroundColor(bg);
 
-        TextView heading = text(title, 25);
-        heading.setTextColor(blue);
-        root.addView(heading);
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+
+        LinearLayout page = column();
+        page.setPadding(dp(16), dp(10), dp(16), dp(15));
+
+        TextView logo = text("▶  BIJMA AI     👑 PRO", 29);
+        logo.setTypeface(null, Typeface.BOLD);
+        logo.setTextColor(blue);
+        page.addView(logo, params(-1, 65));
+
+        TextView tagline = text(
+            "आपका स्मार्ट मनोरंजन ब्राउज़र", 17);
+        page.addView(tagline);
+
+        // AI ASSISTANT CARD
+        LinearLayout assistant = new LinearLayout(this);
+        assistant.setGravity(Gravity.CENTER);
+        assistant.setPadding(dp(10), dp(12), dp(10), dp(12));
+        assistant.setBackground(gradient(
+            Color.rgb(30, 15, 85),
+            Color.rgb(90, 15, 120)));
+
+        TextView face = text("👩🏻‍🎤", 58);
+        assistant.addView(face, params(115, 125));
+
+        LinearLayout greeting = column();
+        TextView hello = text(
+            "Hello Mahendra ji 👋\nमैं आपकी क्या मदद कर सकती हूँ?",
+            17);
+        hello.setTypeface(null, Typeface.BOLD);
+        greeting.addView(hello);
+
+        TextView voice = text("🎙️  मुझसे बात करें", 15);
+        voice.setBackground(shape(
+            Color.rgb(40, 20, 100), blue));
+        greeting.addView(voice, params(-1, 45));
+        voice.setOnClickListener(v -> speak(
+            "Hello Mahendra ji, main aapki kya madad kar sakti hoon"));
+
+        assistant.addView(greeting,
+            new LinearLayout.LayoutParams(0, -2, 1));
+
+        LinearLayout.LayoutParams ap = params(-1, 150);
+        ap.setMargins(0, dp(15), 0, dp(15));
+        page.addView(assistant, ap);
+
+        // SEARCH BOX
+        EditText search = new EditText(this);
+        search.setSingleLine(true);
+        search.setTextColor(white);
+        search.setHintTextColor(Color.LTGRAY);
+        search.setHint("🔍  कुछ भी खोजें या वेबसाइट खोलें");
+        search.setTextSize(16);
+        search.setPadding(dp(18), 0, dp(18), 0);
+        search.setBackground(shape(card, blue));
+        page.addView(search, params(-1, 55));
+
+        search.setOnEditorActionListener((v, action, event) -> {
+            String q = search.getText().toString().trim();
+            if (!q.isEmpty()) showBrowser(q);
+            return true;
+        });
+
+        page.addView(heading("✨ आपके खास फीचर"));
+
+        // FEATURE GRID
+        addTileRow(page,
+            "▶\nYouTube", "📺\nLive TV", "🎬\nIPTV (M3U)");
+
+        addTileRow(page,
+            "🌐\nBrowser", "🛡️\nVPN", "🔎\nVideo Zoom");
+
+        page.addView(heading("🎭 मनोरंजन श्रेणियाँ"));
+
+        addTileRow(page,
+            "🎞️\nMovies", "📽️\nWeb Series",
+            "📺\nTV Shows");
+
+        addTileRow(page,
+            "🎵\nMusic", "⭐\nFavorites",
+            "⬇️\nDownloads");
+
+        page.addView(heading("💜 BIJMA AI Assistant"));
+
+        TextView help = text(
+            "आपकी पसंद का मनोरंजन, एक ही जगह।\n" +
+            "आवाज से बात करें और अपनी पसंद की वेबसाइट खोजें।",
+            15);
+        help.setBackground(shape(card, purple));
+        page.addView(help, params(-1, 95));
+
+        TextView footer = text(
+            "BIJMA AI  •  आपका अपना स्मार्ट ब्राउज़र", 13);
+        page.addView(footer);
+
+        scroll.addView(page);
+        root.addView(scroll);
+        setContentView(root);
+    }
+
+    void addTileRow(LinearLayout parent,
+                    String a, String b, String c) {
+
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+
+        addTile(row, a);
+        addTile(row, b);
+        addTile(row, c);
+
+        LinearLayout.LayoutParams p = params(-1, 112);
+        p.setMargins(0, dp(4), 0, dp(4));
+        parent.addView(row, p);
+    }
+
+    void addTile(LinearLayout row, String name) {
+        TextView tile = text(name, 17);
+        tile.setTypeface(null, Typeface.BOLD);
+
+        int color = name.contains("YouTube")
+            ? Color.rgb(100, 10, 80) :
+            name.contains("Live TV")
+            ? Color.rgb(0, 65, 90) :
+            Color.rgb(38, 20, 90);
+
+        tile.setBackground(gradient(color, card));
+
+        LinearLayout.LayoutParams p =
+            new LinearLayout.LayoutParams(0, -1, 1);
+
+        p.setMargins(dp(4), dp(4), dp(4), dp(4));
+        row.addView(tile, p);
+
+        tile.setOnClickListener(v -> openFeature(name));
+    }
+
+    void openFeature(String name) {
+        if (name.contains("Browser")) {
+            showBrowser("https://www.google.com");
+        } else if (name.contains("YouTube")) {
+            showBrowser("https://www.youtube.com");
+        } else if (name.contains("Live TV")) {
+            showInfo("Live TV",
+                "यहाँ लाइव चैनल जोड़ने की सुविधा बनेगी।");
+        } else if (name.contains("IPTV")) {
+            showInfo("IPTV / M3U",
+                "अपनी वैध M3U प्लेलिस्ट जोड़ने की सुविधा।");
+        } else if (name.contains("VPN")) {
+            showInfo("VPN",
+                "VPN स्क्रीन तैयार है। वास्तविक कनेक्शन के लिए VPN सर्वर जरूरी होगा।");
+        } else if (name.contains("Zoom")) {
+            showBrowser("https://www.youtube.com");
+        } else {
+            showInfo(name,
+                "यह मनोरंजन सुविधा जल्द यहाँ जोड़ी जाएगी।");
+        }
+    }
+
+    void showInfo(String title, String message) {
+        root = column();
+        root.setPadding(dp(18), dp(15), dp(18), dp(15));
+        root.setBackgroundColor(bg);
+
+        TextView back = text("←  वापस", 18);
+        root.addView(back, params(-1, 55));
+        back.setOnClickListener(v -> showHome());
+
+        root.addView(heading(title));
+
+        TextView info = text(message, 19);
+        info.setBackground(shape(card, purple));
+        root.addView(info, params(-1, 160));
 
         setContentView(root);
     }
 
-    void showHome() {
-        setup("BIJMA AI");
-        root.addView(text("आपका स्मार्ट मनोरंजन ब्राउज़र", 16));
-
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(20, 10, 20, 10);
-
-        addMenu(list, "🌐  Browser", "browser");
-        addMenu(list, "▶  YouTube", "youtube");
-        addMenu(list, "📺  Live TV", "livetv");
-        addMenu(list, "🎬  IPTV / M3U", "iptv");
-        addMenu(list, "🔒  VPN", "vpn");
-        addMenu(list, "🔍  Video Zoom", "zoom");
-
-        ScrollView scroll = new ScrollView(this);
-        scroll.addView(list);
-        root.addView(scroll);
-    }
-
-    void addMenu(LinearLayout list, String name, String page) {
-        Button b = button(name, v -> openPage(page));
-        LinearLayout.LayoutParams lp =
-            new LinearLayout.LayoutParams(
-                -1, ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-        lp.setMargins(0, 9, 0, 9);
-        list.addView(b, lp);
-    }
-
-    void openPage(String page) {
-        if (page.equals("browser")) {
-            showBrowser("https://www.google.com");
-        } else if (page.equals("youtube")) {
-            showBrowser("https://www.youtube.com");
-        } else if (page.equals("zoom")) {
-            showBrowser("https://www.youtube.com");
-            Toast.makeText(this,
-                "वेब वीडियो में ज़ूम सपोर्ट चालू है",
-                Toast.LENGTH_LONG).show();
-        } else if (page.equals("livetv")) {
-            showFeature("LIVE TV",
-                "Live TV चलाने के लिए चैनल स्रोत जोड़ना बाकी है।");
-        } else if (page.equals("iptv")) {
-            showIPTV();
-        } else if (page.equals("vpn")) {
-            showFeature("VPN",
-                "VPN सर्वर की जानकारी मिलने पर वास्तविक कनेक्शन जोड़ा जाएगा।");
-        }
-    }
-
-    void showFeature(String title, String message) {
-        setup(title);
-        root.addView(text(message, 18));
-        root.addView(button("होम पर वापस जाएँ", v -> showHome()));
-    }
-
-    void showIPTV() {
-        setup("IPTV / M3U");
-
-        EditText playlist = new EditText(this);
-        playlist.setSingleLine(true);
-        playlist.setHint("M3U प्लेलिस्ट URL डालें");
-        playlist.setHintTextColor(Color.LTGRAY);
-        playlist.setTextColor(white);
-        playlist.setPadding(15, 12, 15, 12);
-        root.addView(playlist);
-
-        root.addView(text(
-            "M3U प्लेलिस्ट और वीडियो प्लेयर का एकीकरण अभी बाकी है।", 16
-        ));
-        root.addView(button("होम पर वापस जाएँ", v -> showHome()));
-    }
-
-    void showBrowser(String url) {
-        setup("BIJMA Browser");
+    void showBrowser(String address) {
+        root = column();
+        root.setBackgroundColor(bg);
 
         LinearLayout bar = new LinearLayout(this);
-        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setPadding(dp(6), dp(8), dp(6), dp(8));
+        bar.setGravity(Gravity.CENTER_VERTICAL);
 
-        Button home = button("⌂", v -> showHome());
-        bar.addView(home, new LinearLayout.LayoutParams(55, 55));
+        TextView back = text("←", 24);
+        bar.addView(back, params(42, 48));
+        back.setOnClickListener(v -> showHome());
 
         addressBox = new EditText(this);
         addressBox.setSingleLine(true);
         addressBox.setTextColor(white);
         addressBox.setHintTextColor(Color.LTGRAY);
         addressBox.setHint("वेबसाइट या खोज लिखें");
-        addressBox.setText(url);
-        bar.addView(addressBox,
-            new LinearLayout.LayoutParams(0, 55, 1));
+        addressBox.setTextSize(14);
+        addressBox.setPadding(dp(10), 0, dp(10), 0);
+        addressBox.setBackground(shape(card, blue));
 
-        Button go = button("GO", v -> openAddress());
-        bar.addView(go, new LinearLayout.LayoutParams(65, 55));
+        bar.addView(addressBox,
+            new LinearLayout.LayoutParams(0, dp(48), 1));
+
+        TextView go = text("GO", 16);
+        bar.addView(go, params(48, 48));
 
         root.addView(bar);
 
         webView = new WebView(this);
-        webView.setBackgroundColor(white);
+        webView.setBackgroundColor(Color.WHITE);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
-        settings.setSupportZoom(true);
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
-        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setSupportZoom(true);
 
         webView.setWebViewClient(new WebViewClient());
-        webView.setWebChromeClient(new WebChromeClient());
 
         root.addView(webView,
-            new LinearLayout.LayoutParams(
-                -1, 0, 1
-            ));
+            new LinearLayout.LayoutParams(-1, 0, 1));
 
-        addressBox.setOnEditorActionListener(
-            (v, actionId, event) -> {
-                openAddress();
-                return true;
-            }
-        );
+        View.OnClickListener load = v -> {
+            String q = addressBox.getText().toString().trim();
+            if (!q.isEmpty()) loadAddress(q);
+        };
 
-        webView.loadUrl(url);
+        go.setOnClickListener(load);
+
+        addressBox.setOnEditorActionListener((v, action, event) -> {
+            load.onClick(v);
+            return true;
+        });
+
+        addressBox.setText(address);
+        loadAddress(address);
+
+        setContentView(root);
     }
 
-    void openAddress() {
-        String address = addressBox.getText().toString().trim();
-
-        if (address.isEmpty()) return;
-
-        if (address.contains(".") && !address.contains(" ")) {
-            if (!address.startsWith("http://")
-                && !address.startsWith("https://")) {
-                address = "https://" + address;
+    void loadAddress(String value) {
+        if (value.contains(".") && !value.contains(" ")) {
+            if (!value.startsWith("http://") &&
+                !value.startsWith("https://")) {
+                value = "https://" + value;
             }
         } else {
-            address = "https://www.google.com/search?q="
-                + android.net.Uri.encode(address);
+            value = "https://www.google.com/search?q=" +
+                android.net.Uri.encode(value);
         }
 
-        webView.loadUrl(address);
+        addressBox.setText(value);
+        webView.loadUrl(value);
     }
 
     @Override
@@ -224,6 +385,11 @@ public class MainActivity extends AppCompatActivity {
             webView.destroy();
             webView = null;
         }
+        if (tts != null) {
+            tts.stop();
+            tts.shutdown();
+        }
         super.onDestroy();
     }
 }
+
