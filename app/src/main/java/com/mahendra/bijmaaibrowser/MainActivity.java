@@ -2,6 +2,7 @@
 package com.mahendra.bijmaaibrowser;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -26,8 +27,8 @@ import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.VideoView;
 import android.widget.Toast;
+import android.widget.VideoView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -39,6 +40,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
@@ -49,22 +51,23 @@ public class MainActivity extends AppCompatActivity {
     private final int WHITE = Color.WHITE;
 
     private LinearLayout root;
-    private FrameLayout browserFrame;
     private WebView webView;
     private VideoView videoView;
+    private FrameLayout browserFrame;
     private TextToSpeech tts;
 
     private View fullscreenView;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
 
-    private final ArrayList<String> channelNames = new ArrayList<>();
-    private final ArrayList<String> channelUrls = new ArrayList<>();
+    private final ArrayList<IptvParser.Channel> channels =
+            new ArrayList<>();
 
     private ActivityResultLauncher<Intent> speechLauncher;
     private ActivityResultLauncher<String> permissionLauncher;
 
-    private int dp(float n) {
-        return (int) (n * getResources().getDisplayMetrics().density);
+    private int dp(float value) {
+        return (int) (value *
+                getResources().getDisplayMetrics().density);
     }
 
     @Override
@@ -73,15 +76,16 @@ public class MainActivity extends AppCompatActivity {
 
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().addFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         speechLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK
                             && result.getData() != null) {
-                        ArrayList<String> words = result.getData()
-                                .getStringArrayListExtra(
+                        ArrayList<String> words =
+                                result.getData().getStringArrayListExtra(
                                         RecognizerIntent.EXTRA_RESULTS);
 
                         if (words != null && !words.isEmpty()) {
@@ -99,12 +103,8 @@ public class MainActivity extends AppCompatActivity {
 
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
-                int language = tts.setLanguage(new Locale("hi", "IN"));
-                if (language == TextToSpeech.LANG_MISSING_DATA
-                        || language == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    tts.setLanguage(Locale.US);
-                }
-                speak("Hello Mahendra ji, main aapki kya madad kar sakti hoon?");
+                tts.setLanguage(new Locale("hi", "IN"));
+                speak("नमस्ते, मैं आपकी क्या मदद कर सकती हूँ?");
             }
         });
 
@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
     private GradientDrawable shape(int color) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(color);
-        d.setCornerRadius(dp(18));
+        d.setCornerRadius(dp(16));
         d.setStroke(dp(1), Color.rgb(65, 70, 105));
         return d;
     }
@@ -143,16 +143,8 @@ public class MainActivity extends AppCompatActivity {
         return b;
     }
 
-    private void page(String title) {
-        root = column();
-        root.setBackgroundColor(BG);
-        root.setPadding(dp(15), dp(12), dp(15), dp(15));
-        setContentView(root);
-
-        TextView back = text("‹   " + title, 22, WHITE);
-        back.setPadding(0, dp(8), 0, dp(15));
-        back.setOnClickListener(v -> showHome());
-        root.addView(back);
+    private void toast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
 
     private void speak(String message) {
@@ -162,8 +154,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void toast(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+    private void page(String title) {
+        closeMedia();
+
+        root = column();
+        root.setBackgroundColor(BG);
+        root.setPadding(dp(14), dp(12), dp(14), dp(14));
+        setContentView(root);
+
+        TextView back = text("‹   " + title, 21, WHITE);
+        back.setPadding(0, dp(8), 0, dp(14));
+        back.setOnClickListener(v -> showHome());
+        root.addView(back);
     }
 
     private void showHome() {
@@ -171,53 +173,50 @@ public class MainActivity extends AppCompatActivity {
 
         root = column();
         root.setBackgroundColor(BG);
-        root.setPadding(dp(15), dp(15), dp(15), dp(15));
+        root.setPadding(dp(14), dp(14), dp(14), dp(14));
 
         ScrollView scroll = new ScrollView(this);
         LinearLayout content = column();
 
-        TextView logo = text("✦ BIJMA AI   👑 PRO", 27,
+        TextView logo = text("✦ BIJMA AI  PRO", 28,
                 Color.rgb(90, 180, 255));
         logo.setGravity(Gravity.CENTER);
-        logo.setPadding(0, dp(15), 0, dp(8));
+        logo.setPadding(0, dp(18), 0, dp(8));
         content.addView(logo);
 
-        TextView tagline = text("आपका अपना स्मार्ट मनोरंजन ब्राउज़र",
+        TextView subtitle = text(
+                "आपका अपना स्मार्ट मनोरंजन ब्राउज़र",
                 15, WHITE);
-        tagline.setGravity(Gravity.CENTER);
-        content.addView(tagline);
+        subtitle.setGravity(Gravity.CENTER);
+        content.addView(subtitle);
 
         LinearLayout assistant = column();
         assistant.setPadding(dp(15), dp(15), dp(15), dp(15));
         assistant.setBackground(shape(Color.rgb(48, 22, 90)));
 
-        TextView face = text("👩🏻‍💼", 42, WHITE);
-        face.setGravity(Gravity.CENTER);
-        assistant.addView(face);
-
         TextView greeting = text(
-                "Hello Mahendra ji!\nमैं आपकी क्या मदद कर सकती हूँ?",
-                18, WHITE);
+                "👩🏻‍💼\nनमस्ते!\nमैं आपकी क्या मदद कर सकती हूँ?",
+                20, WHITE);
         greeting.setGravity(Gravity.CENTER);
         assistant.addView(greeting);
 
-        Button voice = button("🎙 मुझसे बात करें");
+        Button voice = button("🎙 बोलकर बताइए");
         voice.setOnClickListener(v -> requestVoice());
         assistant.addView(voice);
 
         LinearLayout.LayoutParams ap =
                 new LinearLayout.LayoutParams(-1, -2);
-        ap.setMargins(0, dp(18), 0, dp(15));
+        ap.setMargins(0, dp(18), 0, dp(12));
         content.addView(assistant, ap);
 
         EditText search = new EditText(this);
         search.setSingleLine(true);
         search.setTextColor(WHITE);
         search.setHintTextColor(Color.LTGRAY);
-        search.setHint("Google पर कुछ भी खोजें");
+        search.setHint("वेबसाइट या Google खोज लिखें");
         search.setBackground(shape(CARD));
         content.addView(search,
-                new LinearLayout.LayoutParams(-1, dp(50)));
+                new LinearLayout.LayoutParams(-1, dp(52)));
 
         Button searchButton = button("Google Search");
         searchButton.setOnClickListener(v -> {
@@ -226,19 +225,18 @@ public class MainActivity extends AppCompatActivity {
         });
         content.addView(searchButton);
 
-        content.addView(section("✦ मुख्य सुविधाएँ"));
-        addRow(content, "▶ YouTube", "📺 Live TV", "▶ IPTV / M3U");
-        addRow(content, "🌐 Browser", "🛡 VPN", "🔍 Video Zoom");
+        content.addView(section("मुख्य सुविधाएँ"));
+        addRow(content, "🌐 Browser", "▶ YouTube", "📺 Live TV");
+        addRow(content, "📡 IPTV / M3U", "🛡 VPN", "🎬 Video Player");
 
-        content.addView(section("🎬 मनोरंजन"));
-        addRow(content, "🎞 Movies", "📺 Web Series", "📡 TV Shows");
-        addRow(content, "♫ Music", "⭐ Favorites", "⬇ Downloads");
+        content.addView(section("अन्य सुविधाएँ"));
+        addRow(content, "🎵 Music", "⭐ Favorites", "⬇ Downloads");
 
         TextView footer = text(
-                "BIJMA AI • आपका अपना स्मार्ट ब्राउज़र",
+                "BIJMA AI • आपका अपना ब्राउज़र",
                 12, Color.LTGRAY);
         footer.setGravity(Gravity.CENTER);
-        footer.setPadding(0, dp(20), 0, dp(10));
+        footer.setPadding(0, dp(22), 0, dp(10));
         content.addView(footer);
 
         scroll.addView(content);
@@ -248,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView section(String value) {
         TextView t = text(value, 19, WHITE);
-        t.setPadding(0, dp(20), 0, dp(10));
+        t.setPadding(0, dp(18), 0, dp(8));
         return t;
     }
 
@@ -261,21 +259,19 @@ public class MainActivity extends AppCompatActivity {
         addTile(row, b);
         addTile(row, c);
 
-        LinearLayout.LayoutParams p =
-                new LinearLayout.LayoutParams(-1, -2);
-        p.setMargins(0, dp(4), 0, dp(4));
-        parent.addView(row, p);
+        parent.addView(row,
+                new LinearLayout.LayoutParams(-1, -2));
     }
 
     private void addTile(LinearLayout row, String name) {
-        TextView tile = text(name, 14, WHITE);
+        TextView tile = text(name, 13, WHITE);
         tile.setGravity(Gravity.CENTER);
-        tile.setPadding(dp(4), dp(8), dp(4), dp(8));
+        tile.setPadding(dp(3), dp(8), dp(3), dp(8));
         tile.setBackground(shape(CARD));
 
         LinearLayout.LayoutParams p =
-                new LinearLayout.LayoutParams(0, dp(75), 1);
-        p.setMargins(dp(3), 0, dp(3), 0);
+                new LinearLayout.LayoutParams(0, dp(76), 1);
+        p.setMargins(dp(3), dp(3), dp(3), dp(3));
         row.addView(tile, p);
 
         tile.setOnClickListener(v -> openFeature(name));
@@ -292,50 +288,49 @@ public class MainActivity extends AppCompatActivity {
             showLiveTv();
         } else if (name.contains("VPN")) {
             showVpn();
-        } else if (name.contains("Video Zoom")) {
-            showVideoZoom();
+        } else if (name.contains("Video")) {
+            showVideoPlayer();
         } else {
             showBrowser(searchUrl(name));
         }
     }
 
     private String searchUrl(String q) {
-        if (q.startsWith("http://") || q.startsWith("https://")) {
+        if (q.startsWith("https://") || q.startsWith("http://")) {
             return q;
         }
+
         if (q.contains(".") && !q.contains(" ")) {
             return "https://" + q;
         }
+
         return "https://www.google.com/search?q=" + Uri.encode(q);
     }
 
     private void showBrowser(String address) {
-        closeMedia();
         page("BIJMA Browser");
 
         LinearLayout bar = new LinearLayout(this);
-
-        Button home = button("⌂");
-        home.setOnClickListener(v -> showHome());
-        bar.addView(home, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
         EditText addressBox = new EditText(this);
         addressBox.setSingleLine(true);
         addressBox.setTextColor(WHITE);
         addressBox.setHintTextColor(Color.LTGRAY);
-        addressBox.setHint("वेबसाइट या खोज लिखें");
+        addressBox.setHint("वेबसाइट लिखें");
         addressBox.setText(address);
         addressBox.setBackground(shape(CARD));
+
         bar.addView(addressBox,
                 new LinearLayout.LayoutParams(0, dp(48), 1));
 
         Button go = button("GO");
-        bar.addView(go, new LinearLayout.LayoutParams(dp(55), dp(48)));
+        bar.addView(go,
+                new LinearLayout.LayoutParams(dp(65), dp(48)));
+
         root.addView(bar);
 
         browserFrame = new FrameLayout(this);
         webView = new WebView(this);
-        webView.setBackgroundColor(WHITE);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -360,6 +355,7 @@ public class MainActivity extends AppCompatActivity {
 
                 fullscreenView = view;
                 fullscreenCallback = callback;
+
                 browserFrame.addView(view,
                         new FrameLayout.LayoutParams(-1, -1));
 
@@ -399,6 +395,7 @@ public class MainActivity extends AppCompatActivity {
         if (fullscreenView != null && browserFrame != null) {
             browserFrame.removeView(fullscreenView);
             fullscreenView = null;
+
             getWindow().getDecorView().setSystemUiVisibility(
                     View.SYSTEM_UI_FLAG_VISIBLE);
 
@@ -410,8 +407,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showIptv() {
-        closeMedia();
-        page("IPTV / M3U Player");
+        page("IPTV / M3U");
 
         root.addView(text(
                 "अपनी वैध M3U या M3U8 प्लेलिस्ट का लिंक डालें।",
@@ -436,7 +432,8 @@ public class MainActivity extends AppCompatActivity {
         load.setOnClickListener(v -> {
             String url = link.getText().toString().trim();
 
-            if (!url.startsWith("http")) {
+            if (!url.startsWith("http://")
+                    && !url.startsWith("https://")) {
                 toast("कृपया सही M3U लिंक डालें।");
                 return;
             }
@@ -448,58 +445,48 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadM3u(String address, TextView status) {
         new Thread(() -> {
-            ArrayList<String> names = new ArrayList<>();
-            ArrayList<String> urls = new ArrayList<>();
             HttpURLConnection connection = null;
 
             try {
                 connection = (HttpURLConnection)
                         new URL(address).openConnection();
-                connection.setConnectTimeout(12000);
-                connection.setReadTimeout(15000);
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(20000);
                 connection.setRequestProperty(
                         "User-Agent", "BIJMA-AI/1.0");
 
+                StringBuilder data = new StringBuilder();
                 BufferedReader reader = new BufferedReader(
                         new InputStreamReader(
                                 connection.getInputStream()));
 
                 String line;
-                String channel = "TV Channel";
-
                 while ((line = reader.readLine()) != null) {
-                    line = line.trim();
-
-                    if (line.startsWith("#EXTINF")) {
-                        int comma = line.lastIndexOf(',');
-                        if (comma >= 0) {
-                            channel = line.substring(comma + 1).trim();
-                        }
-                    } else if (!line.isEmpty()
-                            && !line.startsWith("#")) {
-                        names.add(channel);
-                        urls.add(line);
-                        channel = "TV Channel";
-                    }
+                    data.append(line).append('\n');
                 }
-
                 reader.close();
 
+                List<IptvParser.Channel> result =
+                        IptvParser.parse(data.toString());
+
                 runOnUiThread(() -> {
-                    channelNames.clear();
-                    channelUrls.clear();
-                    channelNames.addAll(names);
-                    channelUrls.addAll(urls);
+                    channels.clear();
+                    channels.addAll(result);
 
-                    status.setText(names.size() + " चैनल मिले।");
+                    status.setText(channels.size()
+                            + " चैनल मिले।");
 
-                    if (!names.isEmpty()) showChannelList();
-                    else toast("इस लिंक में चैनल नहीं मिले।");
+                    if (!channels.isEmpty()) {
+                        showChannelList();
+                    } else {
+                        toast("इस प्लेलिस्ट में चैनल नहीं मिले।");
+                    }
                 });
 
             } catch (Exception e) {
                 runOnUiThread(() ->
-                        status.setText("लिंक लोड नहीं हुआ। लिंक जाँचें।"));
+                        status.setText(
+                                "प्लेलिस्ट लोड नहीं हुई। लिंक जाँचें।"));
             } finally {
                 if (connection != null) connection.disconnect();
             }
@@ -507,20 +494,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showChannelList() {
-        page("आपके TV चैनल");
+        page("TV चैनल");
 
         ScrollView scroll = new ScrollView(this);
         LinearLayout list = column();
 
-        for (int i = 0; i < channelNames.size(); i++) {
-            final int index = i;
-            Button item = button("▶  " + channelNames.get(i));
+        for (int i = 0; i < channels.size(); i++) {
+            final IptvParser.Channel channel = channels.get(i);
+
+            Button item = button("▶  " + channel.name);
             item.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+
             item.setOnClickListener(v ->
-                    playVideo(channelUrls.get(index),
-                            channelNames.get(index)));
+                    playVideo(channel.url, channel.name));
+
             list.addView(item,
-                    new LinearLayout.LayoutParams(-1, dp(52)));
+                    new LinearLayout.LayoutParams(-1, dp(54)));
         }
 
         scroll.addView(list);
@@ -531,20 +520,42 @@ public class MainActivity extends AppCompatActivity {
         page("Live TV");
 
         root.addView(text(
-                "Live TV के लिए वैध M3U/M3U8 चैनल सूची जोड़ें।",
+                "Live TV चलाने के लिए वैध चैनल प्लेलिस्ट चाहिए।",
                 16, WHITE));
 
         Button open = button("IPTV / M3U खोलें");
         open.setOnClickListener(v -> showIptv());
         root.addView(open);
+    }
 
-        root.addView(text(
-                "बिना चैनल लिंक के TV चैनल अपने-आप नहीं चलेंगे।",
-                13, Color.LTGRAY));
+    private void showVideoPlayer() {
+        page("Video Player");
+
+        EditText address = new EditText(this);
+        address.setSingleLine(true);
+        address.setTextColor(WHITE);
+        address.setHintTextColor(Color.LTGRAY);
+        address.setHint("वीडियो URL डालें");
+        address.setBackground(shape(CARD));
+
+        root.addView(address,
+                new LinearLayout.LayoutParams(-1, dp(52)));
+
+        Button play = button("वीडियो चलाएँ");
+        play.setOnClickListener(v -> {
+            String url = address.getText().toString().trim();
+
+            if (!url.startsWith("http")) {
+                toast("सही वीडियो URL डालें।");
+                return;
+            }
+
+            playVideo(url, "Video Player");
+        });
+        root.addView(play);
     }
 
     private void playVideo(String address, String title) {
-        closeMedia();
         page(title);
 
         videoView = new VideoView(this);
@@ -556,142 +567,56 @@ public class MainActivity extends AppCompatActivity {
                 new LinearLayout.LayoutParams(-1, 0, 1));
 
         videoView.setVideoURI(Uri.parse(address));
+
         videoView.setOnErrorListener((mp, what, extra) -> {
-            toast("यह वीडियो स्ट्रीम समर्थित नहीं है।");
+            toast("यह वीडियो स्ट्रीम नहीं चल सकी।");
             return true;
         });
+
         videoView.start();
     }
 
-    private void showVideoZoom() {
-        closeMedia();
-        page("Video Zoom");
+    private void showVpn() {
+        page("BIJMA AI VPN");
 
-        EditText address = new EditText(this);
-        address.setSingleLine(true);
-        address.setTextColor(WHITE);
-        address.setHintTextColor(Color.LTGRAY);
-        address.setHint("वीडियो URL डालें");
-        address.setBackground(shape(CARD));
-        root.addView(address,
-                new LinearLayout.LayoutParams(-1, dp(50)));
+        TextView title = text("🛡 BIJMA VPN", 25, WHITE);
+        title.setGravity(Gravity.CENTER);
+        root.addView(title);
 
-        FrameLayout frame = new FrameLayout(this);
-        videoView = new VideoView(this);
-        frame.addView(videoView,
-                new FrameLayout.LayoutParams(-1, dp(230)));
+        TextView status = text(
+                "स्थिति: अभी कनेक्ट नहीं है",
+                17, Color.LTGRAY);
+        status.setGravity(Gravity.CENTER);
+        root.addView(status);
 
-        root.addView(frame,
-                new LinearLayout.LayoutParams(-1, dp(230)));
-
-        Button play = button("वीडियो चलाएँ");
-        play.setOnClickListener(v -> {
-            String url = address.getText().toString().trim();
-            if (!url.startsWith("http")) {
-                toast("सही वीडियो लिंक डालें।");
-                return;
-            }
-            videoView.setVideoURI(Uri.parse(url));
-            videoView.start();
-        });
-        root.addView(play);
-    }
-private void requestVoice() {
-    if (ContextCompat.checkSelfPermission(
-            this, Manifest.permission.RECORD_AUDIO)
-            == PackageManager.PERMISSION_GRANTED) {
-        startListening();
-    } else {
-        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
-    }
-}
-
-private void startListening() {
-    try {
-        Intent intent = new Intent(
-                RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE,
-                "hi-IN");
-        intent.putExtra(
-                RecognizerIntent.EXTRA_PROMPT,
-                "महेंद्र जी, बोलिए।");
-
-        speechLauncher.launch(intent);
-    } catch (Exception e) {
-        toast("Voice सुविधा अभी उपलब्ध नहीं है।");
-    }
-}
-
-private void voiceCommand(String command) {
-    String c = command.toLowerCase(new Locale("hi", "IN"));
-
-    if (c.contains("youtube")) {
-        showBrowser("https://m.youtube.com");
-    } else if (c.contains("iptv")) {
-        showIptv();
-    } else if (c.contains("live tv")) {
-        showLiveTv();
-    } else if (c.contains("vpn")) {
-        showVpn();
-    } else if (c.contains("browser")) {
-        showBrowser("https://www.google.com");
-    } else if (c.contains("zoom")) {
-        showVideoZoom();
-    } else if (c.contains("home") || c.contains("होम")) {
-        showHome();
-    } else {
-        speak("महेंद्र जी, आपने कहा " + command);
-    }
-}
-
-private void closeMedia() {
-    if (videoView != null) {
-        videoView.stopPlayback();
-        videoView = null;
+        Button setup = button("VPN सेटअप जानकारी");
+        setup.setOnClickListener(v ->
+                new AlertDialog.Builder(this)
+                        .setTitle("VPN सर्वर आवश्यक")
+                        .setMessage(
+                                "वास्तविक VPN चलाने के लिए सर्वर पता, " +
+                                "प्रोटोकॉल और प्रमाणित टनल कॉन्फ़िगरेशन " +
+                                "आवश्यक हैं। अभी कोई कनेक्शन सक्रिय नहीं है।")
+                        .setPositiveButton("ठीक है", null)
+                        .show());
+        root.addView(setup);
     }
 
-    if (webView != null) {
-        webView.stopLoading();
-        webView.destroy();
-        webView = null;
+    private void requestVoice() {
+        if (ContextCompat.checkSelfPermission(
+                this, Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED) {
+            startListening();
+        } else {
+            permissionLauncher.launch(
+                    Manifest.permission.RECORD_AUDIO);
+        }
     }
 
-    if (fullscreenView != null && browserFrame != null) {
-        browserFrame.removeView(fullscreenView);
-        fullscreenView = null;
-        fullscreenCallback = null;
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_VISIBLE);
-    }
-}
-
-private void showVpn() {
-    page("BIJMA AI VPN");
-
-    TextView title = text(
-            "🛡 आपका निजी VPN",
-            24, WHITE);
-    title.setGravity(Gravity.CENTER);
-    root.addView(title);
-
-    TextView status = text(
-            "स्थिति: अभी कनेक्ट नहीं है",
-            17, Color.LTGRAY);
-    status.setGravity(Gravity.CENTER);
-    root.addView(status);
-
-    Button connect = button("VPN सर्वर सेटअप");
-    root.addView(connect);
-
-    connect.setOnClickListener(v ->
-            toast("VPN सर्वर की जानकारी मिलने पर कनेक्शन जोड़ा जाएगा।"));
-
-    root.addView(text(
-            "सर्वर जानकारी के बिना वास्तविक VPN कनेक्शन उपलब्ध नहीं है।",
-            14, WHITE));
-}
-}
+    private void startListening() {
+        try {
+            Intent intent = new Intent(
+                    RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            intent.putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+  
