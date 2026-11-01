@@ -594,4 +594,6 @@ public class MainActivity extends AppCompatActivity {
             videoView.setVideoURI(Uri.parse(url));
             videoView.start();
         });
-        root.addView(play
+        root.addView(play);
+    }
+}
