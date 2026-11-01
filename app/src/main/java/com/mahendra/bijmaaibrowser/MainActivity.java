@@ -596,4 +596,103 @@ public class MainActivity extends AppCompatActivity {
         });
         root.addView(play);
     }
+private void requestVoice() {
+    if (ContextCompat.checkSelfPermission(
+            this, Manifest.permission.RECORD_AUDIO)
+            == PackageManager.PERMISSION_GRANTED) {
+        startListening();
+    } else {
+        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
+    }
+}
+
+private void startListening() {
+    try {
+        Intent intent = new Intent(
+                RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE,
+                "hi-IN");
+        intent.putExtra(
+                RecognizerIntent.EXTRA_PROMPT,
+                "महेंद्र जी, बोलिए।");
+
+        speechLauncher.launch(intent);
+    } catch (Exception e) {
+        toast("Voice सुविधा अभी उपलब्ध नहीं है।");
+    }
+}
+
+private void voiceCommand(String command) {
+    String c = command.toLowerCase(new Locale("hi", "IN"));
+
+    if (c.contains("youtube")) {
+        showBrowser("https://m.youtube.com");
+    } else if (c.contains("iptv")) {
+        showIptv();
+    } else if (c.contains("live tv")) {
+        showLiveTv();
+    } else if (c.contains("vpn")) {
+        showVpn();
+    } else if (c.contains("browser")) {
+        showBrowser("https://www.google.com");
+    } else if (c.contains("zoom")) {
+        showVideoZoom();
+    } else if (c.contains("home") || c.contains("होम")) {
+        showHome();
+    } else {
+        speak("महेंद्र जी, आपने कहा " + command);
+    }
+}
+
+private void closeMedia() {
+    if (videoView != null) {
+        videoView.stopPlayback();
+        videoView = null;
+    }
+
+    if (webView != null) {
+        webView.stopLoading();
+        webView.destroy();
+        webView = null;
+    }
+
+    if (fullscreenView != null && browserFrame != null) {
+        browserFrame.removeView(fullscreenView);
+        fullscreenView = null;
+        fullscreenCallback = null;
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_VISIBLE);
+    }
+}
+
+private void showVpn() {
+    page("BIJMA AI VPN");
+
+    TextView title = text(
+            "🛡 आपका निजी VPN",
+            24, WHITE);
+    title.setGravity(Gravity.CENTER);
+    root.addView(title);
+
+    TextView status = text(
+            "स्थिति: अभी कनेक्ट नहीं है",
+            17, Color.LTGRAY);
+    status.setGravity(Gravity.CENTER);
+    root.addView(status);
+
+    Button connect = button("VPN सर्वर सेटअप");
+    root.addView(connect);
+
+    connect.setOnClickListener(v ->
+            toast("VPN सर्वर की जानकारी मिलने पर कनेक्शन जोड़ा जाएगा।"));
+
+    root.addView(text(
+            "सर्वर जानकारी के बिना वास्तविक VPN कनेक्शन उपलब्ध नहीं है।",
+            14, WHITE));
+}
+}
 }
